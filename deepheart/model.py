@@ -16,7 +16,10 @@ class CNN:
         self.dropout = dropout
         self.nbatches = int(self.pcg.train.X.shape[0] / float(self.batch_size))
         self.model_name = model_name
-        self.base_dir = base_dir
+        full_base_dir = os.path.abspath(base_dir)
+        if not os.path.exists(full_base_dir):
+            os.makedirs(full_base_dir, exist_ok=True)
+        self.base_dir = full_base_dir
 
     def train(self):
         """
@@ -68,7 +71,7 @@ class CNN:
             pred = self.model1D(X, weights, biases, do_drop)
 
         with tf.name_scope('cost'):
-            cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(pred, y, name='cost'))
+            cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=pred, labels=y))
             optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate).minimize(cost)
 
         dim = tf.shape(y)[0]
@@ -77,30 +80,30 @@ class CNN:
             # sensitivity = correctly predicted abnormal / total number of actual abnormal
             abnormal_idxs = tf.cast(tf.equal(tf.argmax(pred, 1), 1), tf.float32)
             pred1d = tf.reshape(tf.slice(y, [0, 1], [dim, 1]), [-1])
-            abn = tf.mul(pred1d, abnormal_idxs)
+            abn = tf.multiply(pred1d, abnormal_idxs)
             sensitivity = tf.reduce_sum(abn) / tf.reduce_sum(pred1d)
-            tf.scalar_summary('sensitivity', sensitivity)
+            tf.summary.scalar('sensitivity', sensitivity)
 
         with tf.name_scope('specificity'):
             # specificity = correctly predicted normal / total number of actual normal
             normal_idxs = tf.cast(tf.equal(tf.argmax(pred, 1), 0), tf.float32)
             pred1d_n = tf.reshape(tf.slice(y, [0, 0], [dim, 1]), [-1])
-            normal = tf.mul(pred1d_n, normal_idxs)
+            normal = tf.multiply(pred1d_n, normal_idxs)
             specificity = tf.reduce_sum(normal) / tf.reduce_sum(pred1d_n)
-            tf.scalar_summary('specificity', sensitivity)
+            tf.summary.scalar('specificity', sensitivity)
 
         # Physionet score is the mean of sensitivity and specificity
         score = (sensitivity + specificity) / 2.0
-        tf.scalar_summary('score', score)
+        tf.summary.scalar('score', score)
 
-        init = tf.initialize_all_variables()
+        init = tf.global_variables_initializer()
 
         saver = tf.train.Saver()
         with tf.Session() as sess:
             sess.run(init)
 
-            merged = tf.merge_all_summaries()
-            train_writer = tf.train.SummaryWriter(os.path.join(self.base_dir, 'train'), sess.graph)
+            merged = tf.summary.merge_all()
+            train_writer = tf.summary.FileWriter(os.path.join(self.base_dir, 'train'), sess.graph)
 
             for epoch in range(self.epochs):
                 avg_cost = 0

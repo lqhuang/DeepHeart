@@ -32,7 +32,7 @@ class PCG:
 
         self.random_state = random_state
 
-    def initialize_wav_data(self):
+    def initialize_wav_data(self, pickle_path=None):
         """
         Load the original wav files and extract features. Warning, this can take a
         while due to slow FFTs.
@@ -48,7 +48,13 @@ class PCG:
         self.__load_wav_file()
         self.__split_train_test()
         # TODO: check if directory exists
-        self.save("/tmp")
+        if pickle_path:
+            pre_data_path = os.path.abspath('train_pickles')
+        else:
+            pre_data_path = "/tmp"
+        if not os.path.exists(pre_data_path):
+            os.makedirs(pre_data_path, exist_ok=True)
+        self.save(pre_data_path)
 
     def save(self, save_path):
         """
@@ -66,7 +72,7 @@ class PCG:
         """
         np.save(os.path.join(save_path, "X.npy"), self.X)
         np.save(os.path.join(save_path, "y.npy"), self.y)
-        with open( os.path.join(save_path, "meta"), "w") as fout:
+        with open( os.path.join(save_path, "meta"), "wb") as fout:
             pickle.dump((self.basepath, self.class_name_to_id, self.nclasses,
                          self.n_samples, self.random_state), fout)
 
@@ -86,7 +92,7 @@ class PCG:
         """
         self.X = np.load(os.path.join(load_path, "X.npy"))
         self.y = np.load(os.path.join(load_path, "y.npy"))
-        with open(os.path.join(load_path, "meta"), "r") as fin:
+        with open(os.path.join(load_path, "meta"), "rb") as fin:
             (self.basepath, self.class_name_to_id, self.nclasses,
              self.n_samples, self.random_state) = pickle.load(fin)
         self.__split_train_test()
@@ -133,7 +139,7 @@ class PCG:
 
                         self.n_samples += 1
                     except InvalidHeaderFileException as e:
-                        print e
+                        print(e)
 
         if doFFT:
             fft_embedding_size = 400
