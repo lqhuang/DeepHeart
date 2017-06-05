@@ -1,0 +1,42 @@
+# temp data
+*/data
+*/logs
+
+# DS file for macOS
+.*DS_Store
+
+# Configurations for IDE
+/.idea
+/.vscode
+
+#############
+## Python
+#############
+*.py[cod]
+*.pyxbld[cod]
+*.py.*
+
+# Packages
+*.egg
+*.egg-info
+dist/
+build/
+eggs/
+parts/
+var/
+sdist/
+develop-eggs/
+.installed.cfg
+
+# Installer logs
+pip-log.txt
+
+# Unit test / coverage reports
+.coverage
+.tox
+
+# Translations
+*.mo
+
+# Mr Developer
+.mr.developer.cfg
